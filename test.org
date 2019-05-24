@@ -1,0 +1,46 @@
+#+BEGIN_EXPORT html
+<style>
+h2,h3,h4 {
+    color: #ff1f8b;
+}
+
+body {
+    background-color: #303030;
+    color:#c6c6c6;
+  }
+
+  a:link {
+  color:#afd7ff;;
+}
+
+a:visited {
+  color: #5fafd7;
+}
+
+.title {
+    color: #d18aff;
+}
+pre.src:before {
+    color: #000;
+}
+
+code {
+    color: #00d7af  ;
+}
+
+table {border: none;}
+</style>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140668376-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-140668376-1');
+</script>
+#+END_EXPORT
+#+BEGIN_EXPORT
+test
+#+END_EXPORT
