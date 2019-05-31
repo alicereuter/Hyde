@@ -150,23 +150,23 @@ parseSrc = do
   contents <- manyTill anyChar (try  (string "#+END_SRC"))
   return $ Export (Just (pack srcLang)) (pack contents)
 
+parseText :: Parser Element
 parseText = do
-  text <- manyTill anyChar (try  end)
+  text <- manyTill anyChar (try ( lookAhead end) )  :: Parser String
   return $ P (pack text)
 
-end = string "#+BEGIN_EXPORT"
-  <|> string "#+BEGIN_SRC"
-  <|> (eof >> pure "")
-  
-dummy = do
-  d <- manyTill anyChar eof
-  return $ Dumb (pack d)
+-- | parse texts until we've reached eof or start of other token
+end :: Parser String
+end = (string "#+BEGIN_EXPORT")
+  <|>  (string "#+BEGIN_SRC")
+ 
 
 parseElem :: Parser Element
-parseElem = try parseExport
-  <|> dummy
-
+parseElem = parseExport
+  <|> try parseText
+  
 fileParser :: Parser Page
-fileParser =  Page <$>  many parseExport
+fileParser =  Page <$>  many1 parseElem
 
+main :: IO ()
 main = parseFile "test.org" >>= print
