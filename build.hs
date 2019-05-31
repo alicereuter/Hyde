@@ -150,16 +150,21 @@ parseSrc = do
   contents <- manyTill anyChar (try  (string "#+END_SRC"))
   return $ Export (Just (pack srcLang)) (pack contents)
 
-parseText :: Parser Element
-parseText = do
-  text <- manyTill anyChar (try ( lookAhead end) )  :: Parser String
+parseTextMid :: Parser Element
+parseTextMid = do
+  text <- manyTill anyChar ((try ( lookAhead end) ))  :: Parser String
   return $ P (pack text)
+
+parseTextEnd = do
+  text <- many1 anyChar
+  return $ P (pack text)
+
+parseText = try parseTextMid <|> parseTextEnd
 
 -- | parse texts until we've reached eof or start of other token
 end :: Parser String
 end = (string "#+BEGIN_EXPORT")
   <|>  (string "#+BEGIN_SRC")
- 
 
 parseElem :: Parser Element
 parseElem = parseExport
