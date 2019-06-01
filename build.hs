@@ -183,6 +183,7 @@ end = try (string "#+BEGIN_EXPORT")
 
 parseElem :: Parser Element
 parseElem = try parseExport
+  <|> try parseExample
   <|> try parseSrc
   <|> parseText
   
