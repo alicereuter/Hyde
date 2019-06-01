@@ -144,11 +144,26 @@ parseExportNoLang = do
 
 parseExport = try parseExportLang <|> parseExportNoLang
 
-parseSrc = do
+parseSrcLang = do
   string "#+BEGIN_SRC "
-  srcLang <- many1 (noneOf "\n")
-  contents <- manyTill anyChar (try  (string "#+END_SRC"))
-  return $ Export (Just (pack srcLang)) (pack contents)
+  exportLang <- many1 (noneOf "\n")
+  contents <- manyTill anyChar (try  (string "#+END_SRC\n"))
+ -- _ <- string "\n"
+  return $   Export (Just (pack exportLang)) (pack contents) 
+
+parseSrcNoLang = do
+  string "#+BEGIN_SRC"
+  contents <- manyTill anyChar (try  (string "#+END_SRC\n"))
+  return $   Export Nothing (pack contents) 
+
+parseSrc = try parseSrcLang <|> parseSrcNoLang
+
+
+parseExample = do
+  string "#+BEGIN_EXAMPLE"
+  contents <- manyTill anyChar (try  (string "#+END_EXAMPLE\n"))
+  return $   Export Nothing (pack contents) 
+
 
 parseTextMid :: Parser Element
 parseTextMid = do
@@ -161,14 +176,15 @@ parseTextEnd = do
 
 parseText = try parseTextMid <|> parseTextEnd
 
--- | parse texts until we've reached eof or start of other token
+-- | used in text parser texts until we've reached eof or start of other token
 end :: Parser String
-end = (string "#+BEGIN_EXPORT")
+end = try (string "#+BEGIN_EXPORT")
   <|>  (string "#+BEGIN_SRC")
 
 parseElem :: Parser Element
-parseElem = parseExport
-  <|> try parseText
+parseElem = try parseExport
+  <|> try parseSrc
+  <|> parseText
   
 fileParser :: Parser Page
 fileParser =  Page <$>  many1 parseElem
