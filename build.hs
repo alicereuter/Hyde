@@ -28,79 +28,6 @@ import System.IO.Strict as S
 import System.Environment
 import System.IO
 
-    
-jsonURL :: String
-jsonURL = "http://ec2-3-95-164-121.compute-1.amazonaws.com:3002/tasks"
-
-getJSON :: IO B.ByteString
-getJSON = simpleHttp jsonURL
-
-
-getTasksFromVillefort :: IO [Task]
-getTasksFromVillefort = do
-  d <- (eitherDecode <$> getJSON) :: IO (Either String [Task])
-  case d of
-    Left err -> pure [Task 0 ("Error: " ++ show err) ""  "" "" 0 0 ] 
-    Right ps ->  return ps
-
-  
--- | our task datatype
-data Task = Task {rid :: Int,
-                  title :: String,
-                  description :: String,
-                  due :: String,
-                  subject :: String,
-                  time :: Int,
-                  dueIn :: Integer
-                 }
-          deriving (Generic)
-
-
-instance FromJSON Task
-instance ToJSON Task
-instance Eq Task where
-  task == task1 = rid task == rid task1
-
-instance Show Task where show = showTask
-
-showTask :: Task -> String
-showTask (Task uid title desc due _ _ dueIn) = do
-  "* " ++ title ++ " " ++  show dueIn ++ "\n"  ++ "UID:" ++ (show uid) ++ "\n" ++ desc 
-
-parseTask :: Parser Task
-parseTask = do
-  -- | snap onto each org header
-  _ <- string "* " 
-  rawTitle <- many1 (noneOf "\n")
-  let splits = splitOn " " (pack rawTitle)
-  let title = intercalate " " $ init splits
-  let days  = last splits
-  _ <- many1 (noneOf "U")
-  _ <- string "UID:"
-  uid <- many1 digit
-  longDes <- manyTill anyChar (try  (string "\n* "))
-  let des = Prelude.drop 1  longDes
-  return $ Task (read uid :: Int) (unpack title)  des  "" "" 0 (read (unpack days) :: Integer)
-
-more :: Parser Task
-more = do
-  -- | snap onto each org header 
-  rawTitle <- many1 (noneOf "\n")
-  let splits = splitOn " " (pack rawTitle)
-  let title = intercalate " " $ init splits
-  let days  = last splits
-  _ <- many1 (noneOf "U")
-  _ <- string "UID:"
-  uid <- many1 digit
-  longDes <- manyTill anyChar (try  (string "\n* ") <|> (eof >> pure ""))
-  let des = Prelude.drop 1  longDes
-  return $ Task (read uid :: Int) (unpack title)  des  "" "" 0 (read (unpack days) :: Integer)
-
-  
-
-
-
-
 -- | Page Data type
 data Page = Page [Element]
 
@@ -113,7 +40,7 @@ showPage (Page elems) = Prelude.concat $  Prelude.map (\x -> show x ++ "\n") ele
 data Element = P Text
   | Export {lang :: Maybe Text, contents :: Text}
   | Src {lang :: Maybe Text, contents :: Text}
-  | Dumb Text
+  | Example {contents :: Text}
   deriving (Show)
 
 
@@ -162,7 +89,7 @@ parseSrc = try parseSrcLang <|> parseSrcNoLang
 parseExample = do
   string "#+BEGIN_EXAMPLE"
   contents <- manyTill anyChar (try  (string "#+END_EXAMPLE\n"))
-  return $   Export Nothing (pack contents) 
+  return $   Example (pack contents) 
 
 
 parseTextMid :: Parser Element
