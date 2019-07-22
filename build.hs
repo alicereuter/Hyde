@@ -1,6 +1,4 @@
 {-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
-import Network.HTTP.Conduit (simpleHttp)
-import Data.Aeson
 import Data.Text hiding (init,last)
 import Text.ParserCombinators.Parsec (Parser
                                      ,parse
@@ -22,8 +20,6 @@ import Text.ParserCombinators.Parsec (Parser
                                      ,lookAhead
                                      ,eof
                                      ,char)
-import qualified Data.ByteString.Lazy as B
-import GHC.Generics
 import System.IO.Strict as S
 import System.Environment
 import System.IO
@@ -41,6 +37,7 @@ data Element = P Text
   | Export {lang :: Maybe Text, contents :: Text}
   | Src {lang :: Maybe Text, contents :: Text}
   | Example {contents :: Text}
+  | Link {body :: Text, url :: Text}
   deriving (Show)
 
 
@@ -71,6 +68,13 @@ parseExportNoLang = do
 
 parseExport = try parseExportLang <|> parseExportNoLang
 
+
+parseLink = do
+  _ <- string "[["
+  linkText <- pack <$> manyTill anyChar (try (string "]["))
+  linkUrl  <- pack <$> manyTill anyChar (try (string "]]"))
+  return $ Link linkText linkUrl
+  
 parseSrcLang = do
   string "#+BEGIN_SRC "
   exportLang <- many1 (noneOf "\n")
@@ -94,22 +98,25 @@ parseExample = do
 
 parseTextMid :: Parser Element
 parseTextMid = do
-  text <- manyTill anyChar ((try ( lookAhead end) ))  :: Parser String
+  text <- manyTill anyChar ( lookAhead end)  :: Parser String
   return $ P (pack text)
 
+parseTextEnd  :: Parser Element
 parseTextEnd = do
   text <- many1 anyChar
   return $ P (pack text)
 
+parseText :: Parser Element
 parseText = try parseTextMid <|> parseTextEnd
 
 -- | used in text parser texts until we've reached eof or start of other token
 end :: Parser String
-end = try (string "#+BEGIN_EXPORT")
-  <|>  (string "#+BEGIN_SRC")
-
+end = try $ string "[["
+  <|> try (string "#+BEGIN_EXPORT")
+  <|> string "#+BEGIN_SRC"
 parseElem :: Parser Element
-parseElem = try parseExport
+parseElem = try parseLink
+  <|> try parseExport
   <|> try parseExample
   <|> try parseSrc
   <|> parseText
